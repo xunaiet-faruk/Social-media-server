@@ -27,6 +27,7 @@ async function run() {
         await client.connect();
 
         const postCollection =client.db("SoicalDB").collection("post")
+        const commentCollection =client.db("SoicalDB").collection("comment")
 
         app.post('/post',async(req,res)=>{
             const data =req.body;
@@ -40,25 +41,35 @@ async function run() {
             res.send(posts)
          
         })
-        app.patch('/post/:id/like', async (req, res) => {
-            const { id } = req.params;
+
+        app.get('/post/:id',async(req,res)=>{
+            const {id} =req.params;
+            const post =await postCollection.findOne({_id : new ObjectId(id)})
+            res.send(post)
+        })
+     
+        app.post('/post/:postId/like', async (req, res) => {
+            const { postId } = req.params;
+            const { likeCount } = req.body;
+
             try {
-                const post = await postCollection.findOneAndUpdate(
-                    { _id: new ObjectId(id) },
-                    { $inc: { likeCount: 1 } },
-                    { returnDocument: 'after' }
+                const result = await postCollection.updateOne(
+                    { _id: new ObjectId(postId) },
+                    { $set: { likeCount } }
                 );
-                console.log('Updated Post:', post.value); // নিশ্চিত করুন যে এখানে likeCount ফিল্ডটি আছে
-                if (post.value) {
-                    res.send(post.value); // সঠিক রেসপন্স পাঠান
-                } else {
-                    res.status(404).send({ error: 'Post not found' });
-                }
+                res.send(result);
+                console.log("hellow result ",result);
             } catch (error) {
-                console.error("Error updating like:", error);
-                res.status(500).send({ error: 'Failed to like the post' });
+                console.error("Error updating like count:", error);
+                res.status(500).send("Error updating like count");
             }
         });
+
+        app.post('/comment',async(req,res)=>{
+            const data =req.body;
+            const result =await commentCollection.insertOne(data);
+            res.send(result)
+        })
 
 
 
